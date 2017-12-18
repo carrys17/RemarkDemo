@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">RemarkDemo</string>
+    <string name="accessibility_description">遍历好友列表，修改备注</string>
+    <string name="service">修改备注助手</string>
+</resources>
