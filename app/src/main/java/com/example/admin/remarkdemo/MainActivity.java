@@ -5,6 +5,7 @@ import android.annotation.TargetApi;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -183,10 +184,18 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void sleepRandom() {
-        double ran = Math.random();
-        long lon = (long) (1000 + ran *200);
-        SystemClock.sleep(lon);
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private AccessibilityNodeInfo findEditTextSuccess(){
+        AccessibilityNodeInfo editInfo = null;
+        do {
+            AccessibilityNodeInfo root = getRoot();
+            if (root!=null){
+                editInfo = findEditText(root);
+            }
+            SystemClock.sleep(200);
+        }while (editInfo == null);
+
+        return editInfo;
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -205,7 +214,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void initLocalDatabase() throws IOException, JSONException, DocumentException, InterruptedException {
+    private void sleepRandom() {
+        double ran = Math.random();
+        long lon = (long) (1000 + ran *200);
+        SystemClock.sleep(lon);
+    }
+
+
+    private void initLocalDatabase() throws IOException, JSONException, DocumentException, InterruptedException, MyTimeoutException {
         // 没有root的要先赋予权限
         execCMD("chmod -R 777 " + SP_YYBL);
         execCMD("chmod -R 777 " + WECHAT_PATH);
@@ -224,6 +240,9 @@ public class MainActivity extends AppCompatActivity {
 
         // 3、拼接、加密并获取到密码
         String password = initDbPassword(phoneIMEI,currentUin);
+        Log.i(TAG, "onCreate: password == "+ password);
+
+
 //        textView.setText(password);
 
         // 如果在手机上登陆多个微信的话，在MicroMsg中的多个文价夹下有EnMicroMsg.db，而我们需要找出的是
@@ -297,9 +316,9 @@ public class MainActivity extends AppCompatActivity {
                         msg4.what = 4;
                         msg4.obj = error;
                         mHandler.sendMessage(msg4);
-                        killWechat();
-                        sleepMinRandom(10,20);
-
+//                        killWechat();
+//                        sleepMinRandom(1,2);
+                        sleepSecondRandom(10,20);
 
                     }
 
@@ -315,6 +334,14 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+    // 睡眠秒数。区间段
+    private void sleepSecondRandom(long startSecond,long endSecond) {
+        double ran = Math.random();
+        long interval = endSecond - startSecond;
+        long time = (long) (startSecond  * 1000 + ran * 1000 * interval );
+        SystemClock.sleep(time);
+    }
 
     private void killWechat() {
         // 异常时杀死微信，这样就回到主界面了。这样做还有一个好处，保证下次任务开始时微信一定在主界面，从而继续执行任务
@@ -376,7 +403,7 @@ public class MainActivity extends AppCompatActivity {
 
         for (int i = 0; i < list.size(); i++) {
             Person person = list.get(i);
-            String conRemark = person.getConRemark();
+            String nickname = person.getNickname();
             String time = person.getTime();
             String wxid = person.getWxid();
 
@@ -395,42 +422,52 @@ public class MainActivity extends AppCompatActivity {
             if (getCnt() == 1){
                 setCnt(0);
 
-                findEditAndInputInfo(conRemark);
-                // todo 久点
+//                String s = conRemark.substring(0,4);
+
+
+                findEditAndInputInfo(nickname);
+
                 sleepRandom();
 
                 // 找到相应的人
                 AccessibilityNodeInfo friendInfo = findFriendSuccess();
-                clickUtilSuccess(friendInfo);
+                if (friendInfo!=null){
+                    clickUtilSuccess(friendInfo);
+                }else {
+                    Log.i(TAG, "doTask: 搜索不到 "+nickname+" ，将跳过ta");
+                    sqLiteDatabase.execSQL( "update "+TABLE_NAME +" set status = 2 where "+WXID+" = '"+wxid+"'");
+                    throw  new RuntimeException("搜索不到 "+nickname+" ，将跳过ta");
+                }
+
                 sleepRandom();
 
-                    // 找到右上角的个人信息按钮
-                    AccessibilityNodeInfo personInfo = findPersonSuccess();
-                    clickUtilSuccess(personInfo);
-                    sleepRandom();
+                // 找到右上角的个人信息按钮
+                AccessibilityNodeInfo personInfo = findPersonSuccess();
+                clickUtilSuccess(personInfo);
+                sleepRandom();
 
 
-                        // 聊天信息界面。也就是个人资料那里
-                        // 点击头像
-                        AccessibilityNodeInfo avatarInfo = findAvatarSuccess();
-                        clickUtilSuccess(avatarInfo);
-                        sleepRandom();
+                // 聊天信息界面。也就是个人资料那里
+                // 点击头像
+                AccessibilityNodeInfo avatarInfo = findAvatarSuccess();
+                clickUtilSuccess(avatarInfo);
+                sleepRandom();
 
 
-                            // 点击设置备注
-                            AccessibilityNodeInfo changeInfo = findChangeRemark();
-                            clickUtilSuccess(changeInfo);
-                            sleepRandom();
+                // 点击设置备注
+                AccessibilityNodeInfo changeInfo = findChangeRemark();
+                clickUtilSuccess(changeInfo);
+                sleepRandom();
 
-                                // 找到备注名的输入框并修改
-                                findAndChangeRemark(time);
-                                sleepRandom();
-                                // 点击确定按钮
-                                clickConfirm();
-                                sleepRandom();
+                // 找到备注名的输入框并修改
+                findAndChangeRemark(nickname,time);
+                sleepRandom();
+                // 点击确定按钮
+                clickConfirm();
+                sleepRandom();
 
-                                // 更新数据库中的状态，表示修改成功
-                                updateDatabaseStatus(sqLiteDatabase,wxid);
+                // 更新数据库中的状态，表示修改成功
+                updateDatabaseStatus(sqLiteDatabase,wxid);
 
 //
 //                                // 返回到主界面
@@ -457,6 +494,11 @@ public class MainActivity extends AppCompatActivity {
             mHandler.sendMessage(msg2);
 
 
+        }
+
+        if (cursor!=null){
+            cursor.close();
+            cursor = null;
         }
 
         Message msg3 = Message.obtain();
@@ -607,7 +649,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void findAndChangeRemark( String time) {
+    private void findAndChangeRemark(String conRemark,String time) {
         AccessibilityNodeInfo editRemarkInfo;
         // 找到备注编辑框
         editRemarkInfo = findEditRemarkText();
@@ -620,7 +662,7 @@ public class MainActivity extends AppCompatActivity {
         }while (editRemarkInfo!=null && !TextUtils.isEmpty(editRemarkInfo.getText()) && editRemarkInfo.getText().length()!=0);
 
         // 修改备注
-        String text = time;
+        String text = conRemark + time;
         ClipData data = ClipData.newPlainText("text",text);
 
         manager.setPrimaryClip(data);
@@ -910,7 +952,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     // 一连就手动打不开了,但是代码却可以访问到
-    private void linkAndOpenDataBase(File dbFile,String password) {
+    private void linkAndOpenDataBase(File dbFile,String password) throws MyTimeoutException {
         // 这个SQLiteDatabase记得导入的是sqlcipher的类
         SQLiteDatabase.loadLibs(this);
 
@@ -936,18 +978,56 @@ public class MainActivity extends AppCompatActivity {
 
 
         //cursorInRContact
-        Cursor cursorInRContact = db.rawQuery("select * from rcontact",null);
-        List<String> comList = new ArrayList<>();
+        Cursor cursorInRContact = db.rawQuery("select * from rcontact where type = 3 and verifyFlag = 0",null);
+        List<String> nickList = new ArrayList<>();
         List<String> wxidList = new ArrayList<>();
         List<String> timeList = new ArrayList<>();
         while (cursorInRContact.moveToNext()){
+
+
             String conRemark = cursorInRContact.getString(cursorInRContact.getColumnIndex("conRemark"));
-            if ( (conRemark !=null) && (!conRemark.equals("")) && (conRemark.substring(3,4).equals("_")) ){
+            if ((conRemark != null) && (!conRemark.equals("")) && (isContains(conRemark,"2017."))){
+                continue; // 如果备注有2017的话，说明已经修改过了，直接跳过
+            }
+
+            // 需求变了，所有好友。所以拿的是nickname字段
+            String nickname = cursorInRContact.getString(cursorInRContact.getColumnIndex("nickname"));
+
+//            if ((conRemark !=null) &&  (!conRemark.equals("")) && conRemark.length() >=4 && (conRemark.substring(3,4).equals("_")) && !isContains(conRemark,"2017.")){
+            if ((nickname !=null) &&  (!nickname.equals("")) ){
+
+
+
                 String wxid = cursorInRContact.getString(cursorInRContact.getColumnIndex("username"));
-                Log.i(TAG, "linkAndOpenDataBase: conRemark = "+conRemark);
+
+                Cursor cursorInRConversation = db.rawQuery("select * from rconversation where username = '"+wxid+"'",null);
+
+                String time = "";
+                if (cursorInRConversation.moveToFirst()){
+                     time = cursorInRConversation.getString(cursorInRConversation.getColumnIndex("conversationTime"));
+
+                }else {
+//                //     好友刚好是第四个下划线，但是没聊过天。所以没有时间记录
+                    Log.i(TAG, "linkAndOpenDataBase: 出事了  "+wxid+" nickname "+nickname);
+                    // 没有聊天记录，默认也改了，不管是不是有下划线的
+                    time = "1510353204638"; // 2017.11.11
+
+//                    throw new MyTimeoutException("linkAndOpenDataBase 出事了"+"wxid "+wxid+ " conRemark "+conRemark );
+                }
+
+                Log.i(TAG, "linkAndOpenDataBase: nickname = "+nickname);
                 Log.i(TAG, "linkAndOpenDataBase: wxid = "+wxid);
-                comList.add(conRemark);
+                Log.i(TAG, "linkAndOpenDataBase: time = " +time);
+
+                nickList.add(nickname);
                 wxidList.add(wxid);
+                timeList.add(time);
+
+                if (cursorInRConversation !=null){
+                    cursorInRConversation.close();// 记得close游标，不然下次就会报错了
+                }
+
+
             }
         }
         if (cursorInRContact !=null){
@@ -955,18 +1035,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-        Cursor cursorInRConversation = null;
-        for (String  s: wxidList){
-            cursorInRConversation = db.rawQuery("select * from rconversation where username = '"+s+"'",null);
-            if (cursorInRConversation.moveToFirst()){
-                String time = cursorInRConversation.getString(cursorInRConversation.getColumnIndex("conversationTime"));
-                Log.i(TAG, "linkAndOpenDataBase: time = " +time);
-                timeList.add(time);
-            }
-        }
-        if (cursorInRConversation !=null){
-            cursorInRConversation.close();// 记得close游标，不然下次就会报错了
-        }
+//
+//        for (String  s: wxidList){
+//
+//        }
+
 
 
         // 本地数据库
@@ -977,14 +1050,27 @@ public class MainActivity extends AppCompatActivity {
         sqLiteDatabase.beginTransaction();
         try{
 
-            for (int i = 0; i < comList.size(); i++) {
-                String conRemark = comList.get(i);
+            for (int i = 0; i < nickList.size(); i++) {
+                String nickname = nickList.get(i);
                 String wxid = wxidList.get(i);
                 String time = timeList.get(i);
                 time = TimeTrans.stampToDate(time);
+//                 字段处理
+                nickname = nickname.replaceAll("\r|\n","");
+                nickname = nickname.replaceAll("'","");
+                sqliteEscape(nickname); // 主要是 ' 的问题
 
-                String insert = "insert into " + TABLE_NAME + " values('" + wxid + "','" + conRemark + "','" + time + "',0)";
+
+                String insert = "insert into " + TABLE_NAME + " values('" + wxid + "','" + nickname + "','" + time + "',0)";
+//                ContentValues values = new ContentValues();
+//                values.put(WXID,wxid);
+//                values.put(CONREMARK,conRemark);
+//                values.put(TIME,time);
+//                values.put(STATUS,0);
+//                sqLiteDatabase.insert(TABLE_NAME,"time",values);
+
                 sqLiteDatabase.execSQL(insert);
+
             }
             sqLiteDatabase.setTransactionSuccessful();
         }finally {
@@ -1003,6 +1089,30 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+    private String sqliteEscape(String s) {
+        s = s.replace("/","//");
+        s = s.replace("'","''");
+        s = s.replace("[","/[");
+        s = s.replace("]","/]");
+        s = s.replace("%","/%");
+        s = s.replace("&","/&");
+        s = s.replace("_","/_");
+        s = s.replace("(","/(");
+        s = s.replace(")","/)");
+        return s;
+
+    }
+
+
+    private boolean isContains(String conRemark, String target) {
+        if (conRemark.indexOf(target)!=-1){
+            return true;
+        }else {
+            return false;
+        }
+
+    }
 
 
     private void copyFile(String oldPath, String newPath) throws IOException {

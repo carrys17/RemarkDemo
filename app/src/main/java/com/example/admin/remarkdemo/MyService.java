@@ -64,7 +64,7 @@ public class MyService extends AccessibilityService {
 
         do {
             startWechat();
-            sleepSecondRandom(20,30);
+            sleepSecondRandom(2,3);
             // 如果有返回，先按返回
             while (hasReturn()){
                 finishAndReturn();

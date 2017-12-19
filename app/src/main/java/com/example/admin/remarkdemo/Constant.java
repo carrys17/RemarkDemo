@@ -9,7 +9,7 @@ public class Constant {
     public static final int DATA_VERSION = 1;
     public static final String TABLE_NAME = "person";
     public static final String WXID = "wxid";
-    public static final String CONREMARK = "conRemark";
+    public static final String NICKNAME = "nickname";
     public static final String TIME = "time";
     public static final String STATUS = "status";
 

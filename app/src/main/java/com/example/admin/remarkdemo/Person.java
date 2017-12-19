@@ -7,20 +7,20 @@ package com.example.admin.remarkdemo;
 public class Person {
 
     private String  wxid;
-    private String conRemark;
+    private String nickname;
     private String time;
     private int status;
 
-    public Person(String wxid, String conRemark, String time , int status) {
+    public Person(String wxid, String nickname, String time , int status) {
         this.wxid = wxid;
-        this.conRemark = conRemark;
+        this.nickname = nickname;
         this.time = time;
         this.status = status;
     }
 
     @Override
     public String toString() {
-        return "wxid="+this.wxid+",conRemark="+this.conRemark+",time="+this.time+",status="+this.status;
+        return "wxid="+this.wxid+",conRemark="+this.nickname+",time="+this.time+",status="+this.status;
     }
 
     public String getWxid() {
@@ -31,12 +31,12 @@ public class Person {
         this.wxid = wxid;
     }
 
-    public String getConRemark() {
-        return conRemark;
+    public String getNickname() {
+        return nickname;
     }
 
-    public void setConRemark(String conRemark) {
-        this.conRemark = conRemark;
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
     }
 
     public String getTime() {

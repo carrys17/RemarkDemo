@@ -17,10 +17,10 @@ public class DbManager {
         while (cursor.moveToNext()){
             // 根据参数指定的字段来读取字段下标
             String wxid = cursor.getString(cursor.getColumnIndex(WXID));
-            String conRemark = cursor.getString(cursor.getColumnIndex(CONREMARK));
+            String nickname = cursor.getString(cursor.getColumnIndex(NICKNAME));
             String time = cursor.getString(cursor.getColumnIndex(TIME));
             int status = cursor.getInt(cursor.getColumnIndex(STATUS));
-            Person person = new Person(wxid,conRemark,time,status);
+            Person person = new Person(wxid,nickname,time,status);
             list.add(person);
         }
         return list;
