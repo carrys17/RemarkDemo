@@ -441,6 +441,14 @@ public class MainActivity extends AppCompatActivity {
 
                 sleepRandom();
 
+                // 当前界面出错，去到网页款的，比如王者荣耀
+                if(hasErrorInfo()){
+                    Log.i(TAG, "doTask: 搜索 "+nickname+" 错误 ，将跳过ta");
+                    sqLiteDatabase.execSQL( "update "+TABLE_NAME +" set status = 2 where "+WXID+" = '"+wxid+"'");
+                    throw  new RuntimeException("搜索 "+nickname+" 错误 ，将跳过ta");
+                }
+
+
                 // 找到右上角的个人信息按钮
                 AccessibilityNodeInfo personInfo = findPersonSuccess();
                 clickUtilSuccess(personInfo);
@@ -510,6 +518,17 @@ public class MainActivity extends AppCompatActivity {
 
 
 
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private boolean hasErrorInfo() {
+        AccessibilityNodeInfo root = getRoot();
+        List<AccessibilityNodeInfo> list = root.findAccessibilityNodeInfosByViewId("android:id/text1");
+        if (list.size() > 0){
+            return true;
+        }else {
+            return false;
+        }
     }
 
     private void updateDatabaseStatus(android.database.sqlite.SQLiteDatabase sqLiteDatabase, String wxid) {
@@ -978,7 +997,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         //cursorInRContact
-        Cursor cursorInRContact = db.rawQuery("select * from rcontact where type = 3 and verifyFlag = 0",null);
+        Cursor cursorInRContact = db.rawQuery("select * from rcontact where type = 3 and verifyFlag = 0 ",null);
         List<String> nickList = new ArrayList<>();
         List<String> wxidList = new ArrayList<>();
         List<String> timeList = new ArrayList<>();
@@ -986,15 +1005,16 @@ public class MainActivity extends AppCompatActivity {
 
 
             String conRemark = cursorInRContact.getString(cursorInRContact.getColumnIndex("conRemark"));
-            if ((conRemark != null) && (!conRemark.equals("")) && (isContains(conRemark,"2017."))){
-                continue; // 如果备注有2017的话，说明已经修改过了，直接跳过
+            if ( ( (conRemark != null) && (!conRemark.equals("")) && (isContains(conRemark,"2017.")) ) ){
+                continue; // 如果备注有2017的话，直接跳过
             }
 
             // 需求变了，所有好友。所以拿的是nickname字段
             String nickname = cursorInRContact.getString(cursorInRContact.getColumnIndex("nickname"));
 
 //            if ((conRemark !=null) &&  (!conRemark.equals("")) && conRemark.length() >=4 && (conRemark.substring(3,4).equals("_")) && !isContains(conRemark,"2017.")){
-            if ((nickname !=null) &&  (!nickname.equals("")) ){
+            if ((nickname !=null) &&  (!nickname.equals("")) && (!nickname.equals("文件传输助手")) ){  // 排除文件助手
+
 
 
 
